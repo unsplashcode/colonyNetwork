@@ -21,6 +21,6 @@ pragma experimental ABIEncoderV2;
 import "./VotingBase.sol";
 
 
-contract VotingReputation is VotingBase {
+contract VotingToken is VotingBase {
 
 }
