@@ -203,6 +203,10 @@ abstract contract VotingBase is ColonyExtension, PatriciaTreeProofs {
 
   function getInfluence(uint256 _motionId, address _user) public view virtual returns (uint256);
 
+  function postReveal(uint256 _motionId, address _user) internal virtual;
+
+  function postClaim(uint256 _motionId, address _user) internal virtual;
+
   // Public functions (interface)
 
   /// @notice Stake on a motion
@@ -299,11 +303,11 @@ abstract contract VotingBase is ColonyExtension, PatriciaTreeProofs {
     require(getMotionState(_motionId) == MotionState.Submit, "voting-base-motion-not-open");
     require(_voteSecret != bytes32(0), "voting-base-invalid-secret");
 
-    uint256 userRep = getInfluence(_motionId, msg.sender);
+    uint256 influence = getInfluence(_motionId, msg.sender);
 
     // Count reputation if first submission
     if (voteSecrets[_motionId][msg.sender] == bytes32(0)) {
-      motion.totalVotes = add(motion.totalVotes, userRep);
+      motion.totalVotes = add(motion.totalVotes, influence);
     }
 
     voteSecrets[_motionId][msg.sender] = _voteSecret;
@@ -345,6 +349,7 @@ abstract contract VotingBase is ColonyExtension, PatriciaTreeProofs {
 
       emit MotionEventSet(_motionId, REVEAL_END);
     }
+
     tokenLocking.transfer(token, voterReward, msg.sender, true);
   }
 
@@ -422,6 +427,8 @@ abstract contract VotingBase is ColonyExtension, PatriciaTreeProofs {
 
     require(stakerReward > 0, "voting-base-nothing-to-claim");
     delete stakes[_motionId][_staker][_vote];
+
+    postClaim(_motionId, _staker);
 
     tokenLocking.transfer(token, stakerReward, _staker, true);
 
@@ -694,7 +701,7 @@ abstract contract VotingBase is ColonyExtension, PatriciaTreeProofs {
     return keccak256(abi.encodePacked(_salt, _vote));
   }
 
-  function getRequiredStake(uint256 _motionId) internal view returns (uint256) {
+  function getRequiredStake(uint256 _motionId) public view returns (uint256) {
     return wmul(motions[_motionId].maxVotes, totalStakeFraction);
   }
 
