@@ -196,6 +196,8 @@ contract ColonyNetworkMining is ColonyNetworkStorage {
     uint256 lostStake;
     // Passing an array so that we don't incur the EtherRouter overhead for each staker if we looped over
     // it in ReputationMiningCycle.invalidateHash;
+
+    ITokenLocking(tokenLocking).deposit(clnyToken, 0, true); // Faux deposit to clear any locks
     for (uint256 i = 0; i < _stakers.length; i++) {
       lostStake = min(ITokenLocking(tokenLocking).getObligation(_stakers[i], clnyToken, address(this)), _amount);
       ITokenLocking(tokenLocking).transferStake(_stakers[i], lostStake, clnyToken, address(this));
@@ -213,8 +215,7 @@ contract ColonyNetworkMining is ColonyNetworkStorage {
     address clnyToken = IMetaColony(metaColony).getToken();
     uint256 amount = pendingMiningRewards[_recipient];
     pendingMiningRewards[_recipient] = 0;
-    ERC20Extended(clnyToken).approve(tokenLocking, amount);
-    ITokenLocking(tokenLocking).depositFor(clnyToken, amount, _recipient);
+    ITokenLocking(tokenLocking).transfer(clnyToken, amount, _recipient, true);
   }
 
   function stakeForMining(uint256 _amount) public stoppable {
@@ -242,6 +243,7 @@ contract ColonyNetworkMining is ColonyNetworkStorage {
 
   function burnUnneededRewards(uint256 _amount) public stoppable onlyReputationMiningCycle() {
     address clnyToken = IMetaColony(metaColony).getToken();
+    ITokenLocking(tokenLocking).withdraw(clnyToken, _amount, true);
     ERC20Extended(clnyToken).burn(_amount);
   }
 
