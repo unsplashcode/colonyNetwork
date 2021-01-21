@@ -36,6 +36,8 @@ contract VotingReputation is VotingBase {
 
   // [rootHash][skillId][user] => reputationBalance
   mapping (bytes32 => mapping (uint256 => mapping (address => uint256))) influences;
+  // [rootHash][skillId] => reputationBalance
+  mapping (bytes32 => mapping (uint256 => uint256)) totalInfluences;
 
   // Public
 
@@ -53,13 +55,25 @@ contract VotingReputation is VotingBase {
   ) public {
     Motion storage motion = motions[_motionId];
     uint256 userRep = getReputationFromProof(_motionId, msg.sender, _key, _value, _branchMask, _siblings);
+
+    if (influences[motion.rootHash][motion.skillId][msg.sender] == 0) {
+      totalInfluences[motion.rootHash][motion.skillId] = add(totalInfluences[motion.rootHash][motion.skillId], userRep);
+    }
+
     influences[motion.rootHash][motion.skillId][msg.sender] = userRep;
   }
 
   /// @param _motionId The id of the motion
+  /// @param _user The user in question
   function getInfluence(uint256 _motionId, address _user) public view override returns (uint256) {
     Motion storage motion = motions[_motionId];
     return influences[motion.rootHash][motion.skillId][_user];
+  }
+
+  /// @param _motionId The id of the motion
+  function getTotalInfluence(uint256 _motionId) public view override returns (uint256) {
+    Motion storage motion = motions[_motionId];
+    return totalInfluences[motion.rootHash][motion.skillId];
   }
 
   function postReveal(uint256 _motionId, address _user) internal override {}
